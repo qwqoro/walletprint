@@ -1,7 +1,7 @@
 ![gif](images/gif.gif)
 
 <p align="center">
-        <code> [ Have a look at the demo: <a href="https://walletprint.github.io"><code>walletprint.github.io</code></a> ] </code><br><br>
+        <code> [ Have a look at the demo: <a href="https://qwqoro.github.io/walletprint/"><code>qwqoro.github.io/walletprint</code></a> ] </code><br><br>
   	<b>
 		<a href="#-overview">Overview</a> | 
 		<a href="#%EF%B8%8F-usage">Usage</a> | 
@@ -84,7 +84,7 @@ A single-page live demo app that, the moment it gains WebHID / WebUSB access, ha
 
 # ⚙️ Usage
 
-1. Go to [walletprint.github.io](https://walletprint.github.io)
+1. Go to [qwqoro.github.io/walletprint](https://qwqoro.github.io/walletprint/)
 2. Turn on your hardware wallet + Connect it via USB
 3. Click `Connect WebHID (Ledger)` / `Connect WebUSB (Trezor)`, select your hardware wallet / \[Enable `Passive mode`\] → Watch `Passive fingerprint`
    - \[For "DoS"\]&ensp;Enable `Spam mode` → Watch errors in other apps that try to connect to the wallet
