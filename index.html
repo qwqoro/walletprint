@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#191a18" />
+    <meta
+      name="description"
+      content="Explore what a browser can learn about connected hardware wallets. A local, read-only WebHID & WebUSB research console from HaHacking."
+    />
+    <title>Walletprint — Hardware Wallet Fingerprint Console</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="assets/sans.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#console">Skip to console</a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="./" aria-label="Walletprint home"
+          ><svg
+            class="icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path
+              d="M8 10a4 4 0 0 1 8 0v3m-12-3a8 8 0 0 1 16 0v2M12 9v5a12 12 0 0 1-2 7m-2-7a8 8 0 0 1-2 5m10-3a15 15 0 0 1-1 5m5-6a19 19 0 0 1-1 5M4 13v1a4 4 0 0 1-1 3"
+            /></svg
+          ><span>WALLETPRINT<span class="brand-dot">.</span></span></a
+        >
+        <div class="header-right">
+          <span class="byline"
+            >A research tool from <strong>HaHacking</strong></span
+          ><a
+            class="source-link"
+            href="https://github.com/qwqoro/walletprint.github.io"
+            ><svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M9 19c-4 1-4-2-6-2m12 5v-4a3.5 3.5 0 0 0-1-3c3 0 6-1 6-5a4 4 0 0 0-1-3 4 4 0 0 0 0-4s-1 0-4 2a13 13 0 0 0-6 0C6 3 5 3 5 3a4 4 0 0 0 0 4 4 4 0 0 0-1 3c0 4 3 5 6 5a3.5 3.5 0 0 0-1 3v4"
+              /></svg
+            ><span>Source code</span
+            ><svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m7 17 10-10M7 7h10v10" /></svg
+          ></a>
+        </div>
+      </div>
+    </header>
+    <main class="wrap" id="console">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <div class="eyebrow">
+            <span class="small-line"></span>HARDWARE WALLET RESEARCH
+            <span class="edition">/ 001</span>
+          </div>
+          <h1 id="page-title">
+            Wallets have<br /><span>fingerprints</span> too
+          </h1>
+          <p class="intro">
+            A demo of a "pseudo-malicious" app;
+            <br/>See what a webpage can learn about a connected hardware wallet over <code>WebHID</code> / <code>WebUSB</code>.
+            <br/>No on-device prompts / taps / notifications disclosing the leak!
+          </p>
+          <div class="hero-meta">
+            <span
+              ><svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z" />
+                <path d="m8 12 3 3 5-6" /></svg
+              >Read-only research</span
+            ><span class="meta-divider"></span
+            ><span>All data stays in your browser</span>
+          </div>
+        </div>
+        <div class="fingerprint-art" aria-hidden="true">
+          <div class="art-coordinate coordinate-top">
+            FIG. 01 — DEVICE SIGNATURE
+          </div>
+          <svg viewBox="0 0 300 240" fill="none" class="fingerprint-drawing">
+            <g stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path
+                d="M61 136v-28a89 89 0 0 1 178 0v23m-166 2v-25a77 77 0 0 1 154 0v35M85 135v-27a65 65 0 0 1 130 0v39M97 135v-27a53 53 0 0 1 106 0v36M109 135v-27a41 41 0 0 1 82 0v34M121 136v-28a29 29 0 0 1 58 0v30M133 135v-27a17 17 0 0 1 34 0v31M145 109v30c0 30-12 58-33 78M157 108v31c0 31-10 59-28 82M133 148c-2 23-12 45-29 60M121 149c-3 19-11 36-24 49M109 149c-3 15-10 29-20 39M97 149c-2 11-7 21-14 29M85 149c-2 7-5 13-9 18M73 148l-5 10M169 152a141 141 0 0 1-24 73M181 151c-1 26-8 52-20 75M193 154c-1 24-6 46-15 67M205 155c-1 22-5 42-11 62M217 157c-1 17-3 33-7 48M229 155l-4 35"
+              />
+            </g>
+            <path
+              d="M34 125h232"
+              stroke="currentColor"
+              stroke-opacity=".45"
+              stroke-dasharray="3 5"
+            />
+            <circle cx="151" cy="125" r="4" fill="currentColor" />
+            <g stroke="currentColor" stroke-opacity=".5">
+              <path d="M24 36V24h12m228 0h12v12M24 204v12h12m228 0h12v-12" />
+            </g>
+          </svg>
+          <div class="art-coordinate coordinate-bottom">
+            <span>USB / HID</span><span>0x2c97 · 0x1209</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="environment" aria-label="Browser environment">
+        <div class="environment-label">
+          <span class="status-dot"></span>ENVIRONMENT
+        </div>
+        <dl id="caps"></dl>
+      </section>
+      <p id="compatibilityNote" class="compatibility-note" hidden>
+        Some device APIs are unavailable in this browser. For full functionality, open this page in desktop Chrome, Edge, or Opera over HTTPS or localhost.
+      </p>
+      <noscript
+        ><p class="compatibility-note">
+          JavaScript is required to connect devices and run this console.
+        </p></noscript
+      >
+
+      <section
+        class="panel connection-panel"
+        aria-labelledby="connection-heading"
+      >
+        <div class="panel-head">
+          <div class="section-heading">
+            <span class="section-number">01</span>
+            <h2 id="connection-heading">Connect a device</h2>
+          </div>
+          <span id="browserState" class="live-status">Checking browser</span>
+        </div>
+        <div class="connection-body">
+          <div class="connect-options">
+            <p class="section-description">
+              Plug in your wallet, then select a connection method.
+            </p>
+            <div class="btnrow">
+              <button id="btnConnect" class="primary">
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M8 3v5m8-5v5M6 8h12v3a6 6 0 0 1-12 0V8Zm6 9v4"
+                  /></svg
+                >Connect Ledger<svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14m-5-5 5 5-5 5" /></svg
+                ><span class="button-protocol">WebHID</span>
+              </button>
+              <button id="btnUsb">
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M8 3v5m8-5v5M6 8h12v3a6 6 0 0 1-12 0V8Zm6 9v4"
+                  /></svg
+                >Connect Trezor<svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14m-5-5 5 5-5 5" /></svg
+                ><span class="button-protocol">WebUSB</span>
+              </button>
+            </div>
+            <div class="rescan-row">
+              <button id="btnSilent" class="text-button">
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M20 7v5h-5M4 17v-5h5m-4-4a8 8 0 0 1 13-3l2 3M4 16l2 3a8 8 0 0 0 13-3"
+                  /></svg
+                >Silent re-scan</button
+              ><span>Previously authorized devices only</span>
+            </div>
+            <p class="permission-note">
+              Your browser asks for permission on the first connection.
+            </p>
+          </div>
+          <div class="modes">
+            <div class="mode-row">
+              <div class="mode-copy">
+                <div class="mode-title">
+                  <label for="passive">Passive mode</label
+                  >
+                </div>
+                <p id="passiveDescription">
+                  Automatically re-scan granted devices on load, connection, and
+                  every second.
+                </p>
+              </div>
+              <label class="switch"
+                ><input
+                  type="checkbox"
+                  id="passive"
+                  aria-describedby="passiveDescription" /><span
+                  class="track"
+                ></span
+              ></label>
+            </div>
+            <div class="mode-row spam-mode">
+              <div class="mode-copy">
+                <div class="mode-title">
+                  <label for="spam">Spam mode</label
+                  ><span class="experimental">EXPERIMENTAL</span>
+                </div>
+                <p id="spamDescription">
+                  Send 1 "NOP" WebHID req. / 1 sec. to interfere with other wallet apps.
+                </p>
+                <div class="spam-activity">
+                  <span class="spammeter"><span id="spamBar"></span></span
+                  ><span id="spamText">idle</span>
+                </div>
+              </div>
+              <label class="switch"
+                ><input
+                  type="checkbox"
+                  id="spam"
+                  aria-describedby="spamDescription" /><span
+                  class="track"
+                ></span
+              ></label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="results-heading">
+        <div class="section-heading">
+          <span class="section-number">02</span>
+          <h2>Device intelligence</h2>
+        </div>
+      </div>
+      <div class="fingerprint-grid">
+        <section class="panel result-panel" aria-labelledby="passive-heading">
+          <div class="panel-head">
+            <div class="panel-title">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+                <path
+                  d="M9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4"
+                />
+                <rect x="10" y="10" width="4" height="4" />
+              </svg>
+              <h3 id="passive-heading">Passive fingerprint</h3>
+            </div>
+            <span class="protocol">USB / HID</span>
+          </div>
+          <div class="table-wrap">
+            <table id="tPassive" aria-label="Passive device fingerprint">
+              <tbody>
+                <tr>
+                  <td class="empty" colspan="2">
+                    <div class="empty-symbol">
+                      <svg
+                        class="icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <rect x="6" y="6" width="12" height="12" rx="2" />
+                        <path
+                          d="M9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4"
+                        />
+                        <rect x="10" y="10" width="4" height="4" />
+                      </svg>
+                    </div>
+                    <strong>Waiting for a device</strong>
+                    <p>
+                      USB descriptors reveal common information about the wallet.
+                    </p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel-foot">
+            <span class="tiny-dot"></span>Device descriptors
+            <span>MODEL · VENDOR · INTERFACE</span>
+          </div>
+        </section>
+        <section class="panel result-panel" aria-labelledby="active-heading">
+          <div class="panel-head">
+            <div class="panel-title">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M2 12h5l3-8 4 16 3-8h5" />
+              </svg>
+              <h3 id="active-heading">Active fingerprint</h3>
+            </div>
+            <span class="protocol">APDU PROBE</span>
+          </div>
+          <div class="table-wrap">
+            <table id="tActive" aria-label="Active device fingerprint">
+              <tbody>
+                <tr>
+                  <td class="empty" colspan="2">
+                    <div class="empty-symbol">
+                      <svg
+                        class="icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M2 12h5l3-8 4 16 3-8h5" />
+                      </svg>
+                    </div>
+                    <strong>No probe results yet</strong>
+                    <p>
+                      Read-only queries reveal what’s running.
+                    </p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel-foot">
+            <span class="tiny-dot accent-dot"></span>Device responses
+            <span>APP · FIRMWARE · SETTINGS</span>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel account-panel" aria-labelledby="account-heading">
+        <div class="panel-head">
+          <div class="panel-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="8" cy="8" r="5" />
+              <path d="m12 12 9 9m-5-5 3-3m-1 5 3-3M7 7h.01" />
+            </svg>
+            <h3 id="account-heading">Eavesdropped account data</h3>
+            <span class="protocol">ADDRESSES</span>
+          </div>
+          <div class="panel-actions">
+            <button id="btnClearList" class="ghost">Clear list</button
+            ><button
+              id="helpBtn"
+              class="help"
+              aria-label="How to read account data"
+              aria-expanded="false"
+              aria-controls="helpBox"
+              title="How to read this data"
+            >
+              ?
+            </button>
+          </div>
+        </div>
+        <div id="helpBox" hidden>
+          <h4>Ledger · Ethereum app</h4>
+          <p>
+            <code>getAddress</code> <code>e0 02 00 00</code> (P1=0) → an account address, <b>without confirmation prompts</b>.
+          </p>
+          <p>
+            <b>Patterns</b>:&emsp;
+            <ul>
+              <li><code>0x9000</code> + 40 ASCII hex chars → this address is in the wallet;</li>
+              <li><code>getAppConfiguration</code>
+            <code>e0 06</code> → the app's <b>settings</b> (blind-signing
+            on/off, ERC-20, Starknet)</li>
+            </ul>
+          </p>
+
+          <h4>Ledger · Bitcoin app</h4>
+          <p>
+            -&ensp;Legacy app (CLA <code>e0</code>):&emsp;<code>getWalletPublicKey</code> (P1=0) → account <b>xpub/zpub</b> + chain code;
+            <br/>-&ensp;New app 2.x (CLA <code>e1</code>):&emsp;<code>GET_MASTER_FINGERPRINT</code> +
+            <code>GET_EXTENDED_PUBKEY</code> (display=0)
+          </p>
+          <p>
+            <b>Patterns</b>:&emsp;
+            <ul>
+              <li>1 extended key → past & future addresses, balance and history;</li>
+              <li>Receive addresses are derived from device-provided leaf pubkeys (<code>hash160 + bech32 / base58check</code>)</li>
+            </ul>
+          </p>
+
+          <h4>Ledger · some other apps</h4>
+          <p>
+            Each app exposes <code>getAddress</code>/<code>getPubkey</code> (P1/display=0) - yes, <b>without confirmation prompts</b> :
+            <ul>
+              <li><b>Solana</b> (<code>e0 05</code>) → <code>base58(ed25519 key)</code>;</li>
+              <li><b>Tron</b> (<code>e0 02</code>) → Base58Check T-address;</li>
+              <li><b>XRP</b> (<code>e0 02</code>) → r-address (derived Client-side);</li>
+              <li><b>Hyperliquid</b> → reuses the EVM <code>e0 02</code> address;</li>
+              <li><b>USDC</b> has no address of its own — it rides the ETH/SOL/TRX address (ERC-20 / SPL / TRC-20);</li>
+              <li><b>TON/GRAM</b> returns the ed25519 pubkey; its address needs the wallet-contract, shown as experimental.</li>
+            </ul>
+          </p>
+
+          <h4>Ledger · dashboard (BOLOS)</h4>
+          <p>
+            <ul>
+              <li><code>GET_APP_AND_VERSION</code> <code>b0 01</code> → which app is open + whether the device is unlocked;</li>
+              <li><code>getDeviceInfo</code> <code>e0 01</code> → firmware, MCU, <code>targetId</code> → exact model;</li>
+              <li><code>e0 10</code> → <b>battery %</b> (Stax/Flex).</li>
+              <li>A status word:&ensp;<code>0x5515</code>=locked, <code>0x6985</code>=a confirmation was required/declined.</li>
+            </ul>
+          </p>
+
+          <h4>Trezor · GetFeatures (WebUSB)</h4>
+          <p>
+            <code>GetFeatures</code> → device name (label), language, model, firmware, <code>device_id</code> (a stable cross-app tracker) & PIN/passphrase <b>settings</b> (!).
+          </p>
+
+          <h4 class="neg">What this thing CAN NOT see</h4>
+          <p class="neg">
+            <ul>
+              <li><b>PIN / button presses:</b>&emsp;handled securely, never streamed to the "host" device;</li>
+              <li><b>Account names:</b>&emsp;Ledger / Trezor store these names in Ledger Live / Trezor Suite metadata <b>off-device</b>;</li>
+              <li><b>Pending operations / Statuses of inactive apps:</b>&emsp;requests / responses are handled within a "1-host" session, so this app cannot keep "watching" while another operation takes place&ensp;(this is the exact behaviour the "Spam mode" relies on)</li>
+            </ul>
+          </p>
+        </div>
+        <div class="table-wrap">
+          <table id="tSecrets" aria-label="Eavesdropped account data">
+            <tbody>
+              <tr>
+                <td class="empty account-empty" colspan="2">
+                  <div class="empty-symbol">
+                    <svg
+                      class="icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="8" cy="8" r="5" />
+                      <path d="m12 12 9 9m-5-5 3-3m-1 5 3-3M7 7h.01" />
+                    </svg>
+                  </div>
+                  <strong>No account data collected</strong>
+                  <p>
+                    Discovered addresses and device details will
+                    appear here.
+                  </p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="account-footer">
+          <span id="secretsFooter" role="status"
+            >No wallet addresses harvested yet.</span
+          >
+        </div>
+      </section>
+
+      <section class="panel log-panel" aria-labelledby="log-heading">
+        <div class="panel-head">
+          <div class="panel-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16" />
+            </svg>
+            <h3 id="log-heading">Transport log</h3>
+            <span class="protocol">APDU / PROTOBUF I/O</span>
+          </div>
+          <button id="btnClearLog" class="ghost">Clear log</button>
+        </div>
+        <div class="log-toolbar">
+          <span><span class="tiny-dot"></span>LOCAL SESSION</span>
+          <div class="log-legend">
+            <span class="log-tx">↗ TX</span><span class="log-rx">↙ RX</span
+            ><span class="log-err">! ERROR</span>
+          </div>
+        </div>
+        <div
+          id="log"
+          role="log"
+          aria-label="Device transport activity"
+          aria-live="off"
+          tabindex="0"
+        ></div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div>
+        <span class="footer-brand">WALLETPRINT</span
+        >
+      </div>
+      <a href="https://github.com/qwqoro/walletprint.github.io"
+        >Explore the source
+        <svg
+          class="icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m7 17 10-10M7 7h10v10" /></svg
+      ></a>
+    </footer>
+  </body>
+</html>
