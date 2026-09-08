@@ -1,4 +1,4 @@
-![gif](readme/gif.gif)
+![gif](images/gif.gif)
 
 <p align="center">
         <code> [ Have a look at the demo: <a href="https://walletprint.github.io"><code>walletprint.github.io</code></a> ] </code><br><br>
@@ -11,7 +11,7 @@
 
 > A demo application, Proof-of-Concept – showing you what information can a specially crafted webpage extract from the Hardware Crypto Wallet you've connected via USB.
 
-<p align="center"><img alt="preview" src="images/preview.jpg"/></p><br>
+<p align="center"><img width="30.9%" alt="preview" src="images/walletprint-demo-1.png"/>&ensp;<img width="59.1%" alt="preview" src="images/walletprint-demo-2.png"/></p><br>
 
 # 📦 Overview
 
@@ -45,7 +45,7 @@ A single-page live demo app that, the moment it gains WebHID / WebUSB access, ha
 | Ledger | `e0 10` | ✅ | Battery % |
 | Ledger | `listApps` (`e0 de` / `e0 df`) | ❌ | List of installed applications |
 | Ledger | ETH `getAppConfiguration` (`e0 06 00 00 00`) | ✅ | ETH app settings: blind signing, ERC-20, Starknet |
-| Ledger | ETH `getAddress` `e0 02 00 00` (P1=0) | ✅ | ETH addresses `m/44'/60'/{0,1,2}'/0/0` (= USDC/ERC-20, Hyperliquid) |
+| Ledger | ETH `getAddress` `e0 02 00 00` (P1=0) | ✅ | ETH addresses (= USDC/ERC-20, Hyperliquid) |
 | Ledger | BTC \[legacy\] `getWalletPublicKey` (`e0 40`, P1=0) | ✅ | Account `xpub` / `zpub` → every address + full balance / history offline + first receive addresses |
 | Ledger | BTC \[new\] `GET_MASTER_FINGERPRINT` + `GET_EXTENDED_PUBKEY` (`e1 00`, display=0) | ✅ | Account `xpub` / `zpub` → every address + full balance / history offline + first receive addresses |
 | Ledger | Solana `e0 05` / Tron `e0 02` / XRP `e0 02` / Hyperliquid `e0 02`, ... (P1=0 / display=0) | ✅ | SOL, TRX, XRP, Hyperliquid, ... addresses |
@@ -57,6 +57,20 @@ A single-page live demo app that, the moment it gains WebHID / WebUSB access, ha
 > The app auto-detects which protocol the active app uses.<br>
 > - USDC has no address of its own; it rides the ETH (ERC-20), Solana (SPL), Tron (TRC-20) address
 > - Non-EVM / Bitcoin addresses that aren't returned by the device (e.g: XRP, the new BTC app's receive addresses, ...) are derived Client-side (`hash160` + `bech32` / `base58check`), thus flagged `[verify]` in the UI
+
+<br>
+
+| App | Ledger Live address path prefix |
+| :-- | :-- |
+| EVM (ETH / Hyperliquid) | `44'/60'/N'/0/0` |
+| Solana | `44'/501'/N'/0/0` |
+| Tron | `44'/195'/N'/0/0` |
+| XRP | `44'/144'/N'/0/0` |
+| TON / GRAM | `44'/607'/N'/0/0` |
+| BTC (Legacy) | `44'/0'/N'` |
+| BTC (Nested SegWit) | `49'/0'/N'` |
+| BTC (Native SegWit) | `84'/0'/N'` |
+| BTC (Taproot) | `86'/0'/N'` |
 
 &ensp;
 
@@ -98,22 +112,22 @@ When the `Spam mode` is on, the page fires a lot of "NOPs" at the Ledger via `HI
 # 📑 More on the topic
 
 - `[WebHID]` `[Ledger]`<br>
-   - WebHID API:&emsp;[developer.mozilla.org/.../WebHID_API](https://developer.mozilla.org/en-US/docs/Web/API/WebHID_API)
-   - **Web Platform Incubator Community Group** ‟WebHIB API Specification”:&emsp;[wicg.github.io/webhid](https://wicg.github.io/webhid/)
+   - WebHID API:<br>[developer.mozilla.org/.../WebHID_API](https://developer.mozilla.org/en-US/docs/Web/API/WebHID_API)
+   - **Web Platform Incubator Community Group** ‟WebHIB API Specification”:<br>[wicg.github.io/webhid](https://wicg.github.io/webhid/)
 
 - `[WebUSB]` `[Trezor]`<br>
-   - WebUSB API:&emsp;[developer.mozilla.org/.../Web/API/USB](https://developer.mozilla.org/en-US/docs/Web/API/USB)
-   - **Web Platform Incubator Community Group** ‟WebUSB API Specification”:&emsp;[wicg.github.io/webusb](https://wicg.github.io/webusb/)
+   - WebUSB API:<br>[developer.mozilla.org/.../Web/API/USB](https://developer.mozilla.org/en-US/docs/Web/API/USB)
+   - **Web Platform Incubator Community Group** ‟WebUSB API Specification”:<br>[wicg.github.io/webusb](https://wicg.github.io/webusb/)
 
 - `[Ledger]`<br>
-   - Ledger device & transport identifiers:&emsp;[developers.ledger.com/.../identifiers](https://developers.ledger.com/docs/device-interaction/references/identifiers)
-   - Ledger clear-signing / ERC-7730:&emsp;[developers.ledger.com/.../clear-signing/for-wallets](https://developers.ledger.com/docs/clear-signing/for-wallets)
+   - Ledger device & transport identifiers:<br>[developers.ledger.com/.../identifiers](https://developers.ledger.com/docs/device-interaction/references/identifiers)
+   - Ledger clear-signing / ERC-7730:<br>[developers.ledger.com/.../clear-signing/for-wallets](https://developers.ledger.com/docs/clear-signing/for-wallets)
 
 - `[npm]` `[WebHID]` `[Ledger]`<br>
-`@ledgerhq/hw-transport-webhid`:&emsp;[npmjs.com/.../@ledgerhq/hw-transport-webhid](https://www.npmjs.com/package/@ledgerhq/hw-transport-webhid)
+`@ledgerhq/hw-transport-webhid`:&ensp;[npmjs.com/.../@ledgerhq/hw-transport-webhid](https://www.npmjs.com/package/@ledgerhq/hw-transport-webhid)
 
 - `[npm]` `[Ledger]` `[ETH]`<br>
-`@ledgerhq/hw-app-eth`:&emsp;[npmjs.com/.../@ledgerhq/hw-app-eth](https://www.npmjs.com/package/@ledgerhq/hw-app-eth)
+`@ledgerhq/hw-app-eth`:&ensp;[npmjs.com/.../@ledgerhq/hw-app-eth](https://www.npmjs.com/package/@ledgerhq/hw-app-eth)
 
 - `[Ledger]` `[ETH]`<br>
-2026, Ledger Ethereum-app signature-mismatch patch:&emsp;[cryptoticker.io/ledger-ethereum-app-signature-flaw](https://cryptoticker.io/en/ledger-ethereum-app-signature-flaw/)
+2026, Ledger Ethereum-app signature-mismatch patch:<br>[cryptoticker.io/ledger-ethereum-app-signature-flaw](https://cryptoticker.io/en/ledger-ethereum-app-signature-flaw/)

